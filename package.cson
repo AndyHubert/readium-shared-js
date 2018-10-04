@@ -1,256 +1,94 @@
+'cson2json': '
 
-# NPM package file, see https://docs.npmjs.com/files/package.json
-# Oh, this is CSON, not JSON ( see CoffeeScript-Object-Notation https://github.com/bevry/cson )
+    json -I -f package.json -e "this.scripts=$(cat package-scripts.cson | cson2json)"
+    &&
+    node readium-build-tools/optimizePackageJsonScripts.js
+'
 
-#####################################################################
-#####################################################################
+'prepare:all': '
 
-# Master source file used to generate package.json
+    npm run
+        prepare:local
+'
 
-# DEFAULT METHOD (if package.json is intact):
-# npm run cson2json
-#
-# ALTERNATIVE METHOD (if package.json is corrupted):
-# npm install cson
-# node ./readium-cfi-js/node_modules/cson/bin/cson2json package.cson > package.json
-# Note that on some Windows terminals (e.g. GitShell),
-# unfortunately the package.json file might need its encoding
-# converted to UTF-no-BOM :(
-# This is somehow due to the piped stdout-stdin result being UCS2-little-endian
-# (yet this works just fine when the same command is invoked from
-# "npm run cson2json" instead of from Node!)
+'prepare:local': '
 
-#####################################################################
-#####################################################################
+    (npm outdated || echo outdated)
+    &&
+    (npm ci || npm install)
+    &&
+    npm run prepare:local:common
+'
 
-'/*': '----------------------------------------------------------------------------'
-'..': 'This package.json (JSON) is automatically generated from package.cson (CSON)'
-'.-': "DO NOT invoke 'npm init' or 'npm install --save' ('--save-dev' / '--save-optional')"
-'._': 'as this would overwrite / update the JSON, not the master CSON!'
-'*/': '----------------------------------------------------------------------------'
+'prepare:yarn:all': '
 
-#####################################################################
+    yarn run
+        prepare:yarn:local
+'
 
-name: "readium-shared-js"
+'prepare:yarn:local': '
 
-version: "0.24.0"
+    (yarn outdated || echo outdated)
+    &&
+    yarn install
+    &&
+    yarn run prepare:local:common
+'
 
-engines:
-    node: ">=0.12"
-    npm: ">2.10"
+'prepare:local:common': '
 
-description: "Readium - shared javascript module"
+    node readium-build-tools/gitHubForksUpdater.js
+'
 
-keywords: [
-    "readium"
-    "epub"
-    "epub3"
-]
+'clean': '
 
-author:
-    name: "Readium (Daniel Weck)"
-    email: "daniel.weck@gmail.com"
-    url: "http://github.com/readium"
+    (yarn --version || echo noyarn)
+    &&
+    node --version
+    &&
+    npm --version
+    &&
+    rimraf
+        build-output/*
+    &&
+    rimraf
+        api-docs/*
+'
 
-license: "BSD-3-Clause"
+'apidocs': '
 
-licenses: [
-    type: "BSD-3-Clause"
-    url: "http://opensource.org/licenses/BSD-3-Clause"
-]
+    npm run yuidocjs
+'
 
-homepage: "http://github.com/readium/readium-shared-js"
+'prebuild': '
 
-bugs:
-    url: "http://github.com/readium/readium-shared-js/issues"
-    email: "daniel.weck@gmail.com"
+    npm run clean
+'
 
-repository:
-    type: "git"
-    url: "git://github.com/readium/readium-shared-js.git"
+'build': '
 
-#####################################################################
-files: [
+    npm run
+        build:styles
+    &&
+    npm run
+        build:scripts
+'
 
-    "build-output/"
+'lint': '
 
-    "dev/"
+    npm run jshint
+        "js/**.js"
+'
 
-    "license.txt"
+'genPluginsConfig': '
 
-    "README.md"
-]
+    node readium-build-tools/pluginsConfigMaker.js
+'
 
-# "main" is designed for Node/CommonJS modules, not RequireJS/AMD ones.
-# See http://requirejs.org/docs/commonjs.html
-# See http://requirejs.org/docs/node.html
-#
-#main: "build-output/_multiple-bundles/readium-shared-js.js"
+'prebuild:scripts': '
 
-#####################################################################
-dependencies:
-
-    "parallelshell": 'latest'
-
-    "opener": 'latest'
-
-    #"http-server": 'latest'
-    "http-server": 'danielweck/http-server'
-    # SEE: https://github.com/indexzero/http-server/issues/154
-
-
-#####################################################################
-# These dependencies can be fetched by using the "--dev" option
-# in "npm install --dev readium-shared-js".
-devDependencies:
-
-# see readium-cfi-js:
-# "requirejs", "almond", "jquery"
-
-
-    "jquery-sizes": 'bramstein/jsizes'
-
-    "domReady": 'requirejs/domReady'
-
-    "backbone": 'latest'
-
-    "underscore": 'latest'
-
-    "urijs": 'danielweck/URI.js'
-    #"urijs": 'latest'
-
-    "eventemitter3": '1.2.0'
-    
-    "es6-collections": 'latest'
-
-    "FontLoader": 'smnh/FontLoader'
-    
-    "CSSOM": 'danielweck/CSSOM#gh-pages'
-    #"CSSOM": 'NV/CSSOM#gh-pages'
-    
-
-# Below dependencies are only used for building tasks (above are runtime deps):
-
-# see readium-cfi-js:
-# "cson", "jshint", "glob", "rimraf", "mkdirp", "watch", "live-reload"
-
-
-#####################################################################
-scripts:
-
-
-#=====================
-    cson2json: '
-
-        node ./readium-cfi-js/node_modules/cson/bin/cson2json package.cson > package.json
-        &&
-        node readium-cfi-js/readium-build-tools/optimizePackageJsonScripts.js
-    '
-
-
-#=====================
-    'prepare': '
-
-        npm run
-            prepare:submodule
-        &&
-        npm run
-            prepare:local
-        &&
-        npm run
-            prepare:patch
-    '
-
-#=====================
-    'prepare:local': '
-
-        npm outdated
-        &&
-        npm install
-        &&
-        npm update
-        &&
-        node
-            readium-cfi-js/readium-build-tools/gitHubForksUpdater.js
-    '
-
-#=====================
-    'prepare:submodule': '
-
-        cd readium-cfi-js
-        &&
-        npm run prepare
-        &&
-        cd ..
-        &&
-        ls
-    '
-
-#=====================
-    'prepare:patch': '
-
-        npm run rimraf
-            node_modules/eventemitter3/_rjs/**
-        &&
-        node readium-cfi-js/node_modules/requirejs/bin/r.js -convert
-            node_modules/eventemitter3/
-            node_modules/eventemitter3/_rjs/
-    '
-
-#=====================
-    clean: '
-
-        node --version
-        &&
-        npm --version
-        &&
-        npm run rimraf
-            build-output/*
-        &&
-        npm run rimraf
-            api-docs/*
-    '
-
-#=====================
-    apidocs: '
-
-        npm run yuidocjs
-    '
-
-#=====================
-    'prebuild': '
-
-        npm run clean
-    '
-
-#=====================
-    build: '
-
-        npm run
-            build:styles
-        &&
-        npm run
-            build:scripts
-    '
-
-#=====================
-    lint: '
-
-        npm run jshint
-            "js/**.js"
-    '
-
-#=====================
-    'genPluginsConfig': '
-
-        node readium-cfi-js/readium-build-tools/pluginsConfigMaker.js
-    '
-
-#=====================
-    'prebuild:scripts': '
-
-        npm run genPluginsConfig --readium-shared-js:RJS_PLUGINS_OVERRIDE=no
-    '
+    npm run genPluginsConfig --readium-shared-js:RJS_PLUGINS_OVERRIDE=no
+'
 # RJS_PLUGINS_OVERRIDE can be overridden, via an ENV shell variable:
 # e.g. PowerShell:
 # Set-Item Env:RJS_PLUGINS_OVERRIDE no
@@ -258,124 +96,127 @@ scripts:
 # RJS_PLUGINS_OVERRIDE=no npm run build
 # (temporary, process-specific ENV variable)
 
-#=====================
 #    'prebuild:scripts': '
 #
 #        npm run
 #            lint
 #    '
 
-
-
-#=====================
 #    'postbuild:scripts': '
 #
 #        npm run rimraf
 #                build-output/_SOURCES
 #    '
 
-#=====================
-    'build:scripts': '
+'build:scripts': '
 
-        npm run
-            build:scripts:multiple --readium-shared-js:RJS_UGLY=no
-        &&
-        npm run
-            build:scripts:single --readium-shared-js:RJS_UGLY=no
-    '
+    npm run
+        build:scripts:multiple --readium-shared-js:RJS_UGLY=no
+    &&
+    npm run
+        build:scripts:single --readium-shared-js:RJS_UGLY=no
+    &&
+    npm run
+        build:scripts:umd --readium-shared-js:RJS_UGLY=no
+'
 
-#=====================
-    'build:scripts:multiple': '
+'build:scripts:multiple': '
 
-        npm run rjs
-             --rjs_bundle=multiple
-    '
+    npm run rjs
+            --rjs_bundle=multiple
+'
 
-#=====================
-    'postbuild:scripts:multiple': '
+'postbuild:scripts:multiple': '
 
-        npm run rimraf
-            build-output/_multiple-bundles/RequireJS.js.src.js
-    '
+    npm run rimraf
+        build-output/_multiple-bundles/RequireJS.js.src.js
+'
 
-#=====================
-    'build:scripts:single': '
+'build:scripts:single': '
 
-        npm run rjs
-             --rjs_bundle=single
-    '
+    npm run rjs
+            --rjs_bundle=single
+'
 
-#=====================
-    'prebuild:styles': '
+'build:scripts:umd': '
 
-        npm run mkdirp
-            build-output/css/
-    '
+    npm run rjs
+            --rjs_bundle=umd
+'
 
-#=====================
+'prebuild:styles': '
+
+    mkdirp
+        build-output/css/
+'
+
 # TODO use cssminify
-    'build:styles': '
+'build:styles': '
 
-        npm run cpy
-            static/sdk.css
-            build-output/css/
-    '
+    cpy
+        static/sdk.css
+        build-output/css/
+'
 
-#=====================
 #### BLOCKING! (CTRL-C) [watch][live-reload][http]
-    'http:watch': '
+'http:watch': '
 
-        echo > open_webbrowser.js
-        &&
-        parallelshell
-            \"npm run dowatch\"
-            \"npm run httpServe\"
-    '
-# \"npm run live-reload\"
+    echo > open_webbrowser.js
+    &&
+    run-p
+        \"dowatch\"
+        \"httpServe\"
+'
+# \"live-reload\"
 
-#=====================
 #### BLOCKING! (CTRL-C) [http]
-    'http': '
-        npm run genPluginsConfig
-        &&
-        npm run httpServe
-    '
+'http': '
+    npm run genPluginsConfig
+    &&
+    npm run httpServe
+'
 
-#=====================
 #### BLOCKING! (CTRL-C) [watch or nodemon]
-    'dowatch': '
+'dowatch': '
 
-        npm run watch
-            \"npm run build
-                && node readium-cfi-js/readium-build-tools/webbrowser.js
-                && npm run rimraf
-                      open_webbrowser.js\"
-            dev/ js/ plugins/ readium-cfi-js/js/
-    '
-    #    nodemon -q
-    #    -w dev/
-    #    --ext \".\"
-    #    --exec \" ... \"
+    watch
+        \"npm run build
+            && node readium-build-tools/webbrowser.js
+            && rimraf
+                    open_webbrowser.js\"
+        dev/ js/ plugins/
+'
+#    nodemon -q
+#    -w dev/
+#    --ext \".\"
+#    --exec \" ... \"
 
-#=====================
-    'httpServe': '
+#### BLOCKING! (CTRL-C) [watch]
+'watch': '
 
-        node
-            readium-cfi-js/readium-build-tools/http-server.js
-            
-            -LOGFILE
-            http.log
-            
-            -OPEN
-            /dev/
-            
-            -a 127.0.0.1
-            -p 9090
-            --cors
-            .
-    '
+    watch 
+        \"npm run build\"
+        dev/ js/ plugins/
+'
 
-#=====================
+'httpServe': '
+
+    node
+        readium-build-tools/http-server.js
+        
+        -LOGFILE
+        http.log
+        
+        -OPEN
+        /dev/
+        
+        -c-1
+        -a 127.0.0.1
+        -p 9090
+        --cors
+        .
+'
+
 #    'live-reload': '
 #
 #        live-reload --port 9091 --delay 1000 build-output/
